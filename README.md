@@ -1,5 +1,9 @@
 # Luxafor Linux
 
+[![Tests](https://github.com/keydes1998/luxafor-linux/actions/workflows/tests.yml/badge.svg)](https://github.com/keydes1998/luxafor-linux/actions/workflows/tests.yml)
+![Plattform: Linux](https://img.shields.io/badge/plattform-linux-blue)
+![Lizenz: MIT](https://img.shields.io/badge/lizenz-MIT-green)
+
 Moderne Linux-Alternative zum offiziellen Luxafor-Client: direkte USB-Steuerung von
 Luxafor-Geräten, automatische **Microsoft Teams**-Status-Synchronisierung
 (Entra ID / Graph), **Outlook**-Kalenderberücksichtigung, Regel-Engine, Profile,
@@ -7,6 +11,10 @@ Webhooks, lokale REST-API, Tray und Hintergrundbetrieb über einen systemd-User-
 
 > Vollständig lokal. Keine Cloud-Anbindung außer den von dir aktivierten
 > Microsoft-Integrationen. Keine Telemetrie.
+
+| Dashboard | Automatisierungen | Integrationen |
+|---|---|---|
+| ![Dashboard](docs/screenshots/01-dashboard.png) | ![Automatisierungen](docs/screenshots/02-automatisierungen.png) | ![Integrationen](docs/screenshots/03-integrationen.png) |
 
 ---
 

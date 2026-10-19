@@ -74,6 +74,7 @@ class DashboardPage(QWidget):
         # --- quick controls -----------------------------------------------------
         quick = Card(tr("quick"))
         self.quick_row = QHBoxLayout()
+        self.quick_grid = None
         self.quick_row.setSpacing(8)
         quick.lay.addLayout(self.quick_row)
         buttons_row = QHBoxLayout()
@@ -95,6 +96,7 @@ class DashboardPage(QWidget):
         self.lbl_teams.setStyleSheet("font-size:18px; font-weight:600;")
         self.lbl_teams_detail = QLabel("")
         self.lbl_teams_detail.setObjectName("muted")
+        self.lbl_teams_detail.setWordWrap(True)
         self.teams_card.add(self.lbl_teams)
         self.teams_card.add(self.lbl_teams_detail)
         self.lbl_sync = QLabel(tr("last_sync") + ": " + tr("never"))
@@ -106,6 +108,7 @@ class DashboardPage(QWidget):
         self.lbl_calendar.setStyleSheet("font-size:16px; font-weight:600;")
         self.lbl_calendar_detail = QLabel("")
         self.lbl_calendar_detail.setObjectName("muted")
+        self.lbl_calendar_detail.setWordWrap(True)
         self.cal_card.add(self.lbl_calendar)
         self.cal_card.add(self.lbl_calendar_detail)
 
@@ -115,7 +118,10 @@ class DashboardPage(QWidget):
         self.dev_table.verticalHeader().setVisible(False)
         self.dev_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.dev_table.horizontalHeader().setStretchLastSection(True)
-        self.dev_table.setFixedHeight(150)
+        self.dev_table.setMinimumHeight(120)
+        self.dev_table.setMaximumHeight(170)
+        self.dev_table.setColumnWidth(0, 150)
+        self.dev_table.setColumnWidth(1, 210)
         self.dev_card.add(self.dev_table)
 
         grid.addWidget(self.status_card, 0, 0)
@@ -201,7 +207,19 @@ class DashboardPage(QWidget):
             self.dev_table.setItem(i, 2, item)
 
     def _apply_statuses(self, data: dict) -> None:
-        for st in (data.get("statuses") or [])[:8]:
+        """2x4-Raster: passt auch in schmale Fenster ohne Überlauf."""
+        # bestehendes Grid leeren
+        if self.quick_grid is not None:
+            while self.quick_grid.count():
+                gi = self.quick_grid.takeAt(0)
+                if gi.widget():
+                    gi.widget().deleteLater()
+            self.quick_row.removeItem(self.quick_grid)
+            self.quick_grid.deleteLater()
+        grid = QGridLayout()
+        grid.setSpacing(8)
+        statuses = (data.get("statuses") or [])[:8]
+        for i, st in enumerate(statuses):
             name = str(st.get("name", "?"))
             color = str(st.get("color", "#FF0000"))
             btn = QPushButton(name)
@@ -215,5 +233,6 @@ class DashboardPage(QWidget):
                     "effect": st.get("effect") or "solid",
                     "duration": int(st.get("duration") or 0),
                 }))
-            self.quick_row.addWidget(btn)
-        self.quick_row.addStretch(1)
+            grid.addWidget(btn, i // 4, i % 4)
+        self.quick_row.addLayout(grid)
+        self.quick_grid = grid

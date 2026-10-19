@@ -32,7 +32,6 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
-    "aiohttp-pytest-utils>=0.1 ; python_version < '4'",
 ]
 
 [project.scripts]
