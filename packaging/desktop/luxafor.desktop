@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Luxafor
+GenericName=LED Statusleuchte
+Comment=Luxafor USB-LED steuern, Teams-/Outlook-Status synchronisieren
+Exec=lx-gui
+Icon=luxafor
+Terminal=false
+Categories=Utility;Office;
+Keywords=luxafor;led;teams;presence;
+StartupNotify=true
+X-GNOME-UsesNotifications=true

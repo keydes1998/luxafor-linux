@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "luxafor-linux"
+version = "1.0.0"
+description = "Modern Linux client for Luxafor USB devices with Microsoft Teams and Outlook integration"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Luxafor Linux Contributors" }]
+keywords = ["luxafor", "hid", "teams", "microsoft-graph", "presence"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Desktop",
+]
+dependencies = [
+    "hidapi>=0.14.0",
+    "msal>=1.31.0",
+    "aiohttp>=3.9.0",
+    "PySide6>=6.7",
+    "jeepney>=0.8.0",
+    "keyring>=24.3.0",
+    "cryptography>=42.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "aiohttp-pytest-utils>=0.1 ; python_version < '4'",
+]
+
+[project.scripts]
+lx-core = "luxafor.cli:main_core"
+lx-gui = "luxafor.ui.main:main"
+luxafor = "luxafor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

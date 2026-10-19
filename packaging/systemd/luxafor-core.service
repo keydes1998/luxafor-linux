@@ -1,0 +1,18 @@
+[Unit]
+Description=Luxafor LED control core (hardware, integrations, rules)
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/share/luxafor/venv/bin/lx-core
+Restart=on-failure
+RestartSec=3
+# tight sandboxing: only what the daemon needs
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/luxafor %h/.config/luxafor
+
+[Install]
+WantedBy=default.target

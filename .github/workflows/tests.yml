@@ -1,0 +1,30 @@
+---
+name: Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Installiere Projekt + Dev-Abhängigkeiten
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[dev]
+      - name: Pytest (headless)
+        env:
+          QT_QPA_PLATFORM: offscreen
+          LUXAFOR_HIDRAW_SYSFS: /tmp/luxe-sysfs
+          LUXAFOR_HIDRAW_DEV_ROOT: /tmp/luxe-dev
+        run: |
+          mkdir -p /tmp/luxe-sysfs /tmp/luxe-dev
+          python -m pytest tests/ -q
