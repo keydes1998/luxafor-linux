@@ -111,3 +111,30 @@ async def test_pause_freezes(engine):
     state._evaluate()
     # while paused the manual candidate is not evaluated/applied
     assert state.candidates.get("presence") is not None
+
+async def test_refresh_now_force_reapplies_after_failed_apply(engine):
+    """Replug-Fix: Gerät war weg → apply schlug fehl → Device-Event forcing."""
+    state, devices, db = engine
+    await state.start()
+    state.set_candidate("manual", Candidate(origin="manual", label="Busy",
+                                            color="#FF0000", priority=90))
+    state._evaluate()
+    assert devices.applied[-1] == ("#FF0000", "solid")
+    # apply schlägt fehl (Gerät weg) — DeviceManager setzt 'applied' False
+    devices.fail = True
+    original_apply = state.devices.apply_state
+    def failing_apply(color, effect, led=None, device_ids=None):
+        if getattr(devices, "fail", False):
+            devices.applied.append(("FAIL", color, effect))
+            return False
+        devices.applied.append((color, effect))
+        return True
+    state.devices.apply_state = failing_apply
+    state.note_apply_failed()   # Unplug-Event informiert die Engine
+    state.refresh_now()
+    assert devices.applied[-1][0] == "FAIL"
+    # Gerät wieder da + force → gleicher Status wird ERNEUT geschrieben
+    devices.fail = False
+    state.refresh_now(force=True)
+    assert devices.applied[-1] == ("#FF0000", "solid")
+    assert state.current["applied"] is True

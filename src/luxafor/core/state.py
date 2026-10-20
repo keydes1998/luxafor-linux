@@ -107,6 +107,18 @@ class StateEngine:
         self._force_apply = True
         self.request_recompute()
 
+    def note_apply_failed(self) -> None:
+        """Gerät ging verloren (Unplug): der 'aktuelle' Zustand ist nicht mehr
+        auf der Hardware → erneutes Anwenden erzwingen bei nächstem Refresh."""
+        self.current["applied"] = False
+
+    def refresh_now(self, force: bool = False) -> None:
+        """Sofortige Neuauswertung (synchron). Mit force wird die Hardware
+        auch bei unverändertem Status neu beschrieben (Replug)."""
+        if force:
+            self._force_apply = True
+        self._evaluate()
+
     def request_recompute(self) -> None:
         self._wakeup.set()
 

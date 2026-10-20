@@ -93,6 +93,7 @@ class CoreApp:
         await self.idlelock_integration.start()  # self-guards internally (D-Bus presence)
         await self.webhooks_integration.start()
         self._schedule_task = asyncio.create_task(self._schedule_loop())
+        self._device_event_task = asyncio.create_task(self._device_events())
         log.info("core started v%s", __version__)
 
     async def run(self) -> None:
@@ -105,7 +106,27 @@ class CoreApp:
                 pass
         await stop.wait()
 
+    async def _device_events(self) -> None:
+        """Reagiert auf Geräte-Anschluss/Reconnect: Status sofort neu anwenden
+        (auch unverändert), damit die LED nach Replug automatisch weiterleuchtet."""
+        q = self.bus.subscribe("device")
+        try:
+            while True:
+                ev = await q.get()
+                action = ev.data.get("action")
+                if action in ("add", "reconnect"):
+                    log.info("device %s → status neu anwenden", action)
+                    self.state.refresh_now(force=True)
+                elif action == "removed":
+                    self.state.note_apply_failed()
+        except asyncio.CancelledError:
+            pass
+        finally:
+            self.bus.unsubscribe(q)
+
     async def stop(self) -> None:
+        if self._device_event_task:
+            self._device_event_task.cancel()
         for integ in self.registry.all():
             try:
                 await integ.stop()
