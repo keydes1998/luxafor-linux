@@ -56,22 +56,17 @@ RULE_DST="/etc/udev/rules.d/90-luxafor.rules"
 pkill -f lx-core >/dev/null 2>&1 || true
 pkill -f "python -m luxafor core" >/dev/null 2>&1 || true
 
-if [ -f "$RULE_DST" ] && cmp -s "$RULE_SRC" "$RULE_DST"; then
-  ok "udev-Regel bereits vorhanden"
-  # auch bei unveränderter Regel auf vorhandene Geräte anwenden:
-  command -v udevadm >/dev/null && sudo udevadm trigger --subsystem-match=hidraw 2>/dev/null || true
-else
-  echo "== udev-Regel wird installiert (sudo wird einmalig benötigt) =="
-  sudo install -m 0644 "$RULE_SRC" "$RULE_DST" \
-    && ok "udev-Regel: $RULE_DST" \
-    || warn "udev-Regel NICHT installiert – ohne Root wird kein Gerätezugriff möglich sein"
-  # Regeln neu laden und auf bereits angeschlossene Geräte anwenden
-  # (uaccess gilt sonst erst nach Ab-/Anstecken oder Neuanmeldung)
-  if command -v udevadm >/dev/null; then
-    sudo udevadm control --reload-rules 2>/dev/null || true
-    sudo udevadm trigger --subsystem-match=hidraw 2>/dev/null || true
-    sudo udevadm settle 2>/dev/null || true
-  fi
+# udev-Regel IMMER neu installieren (kein cmp-Skip – Versionen können sich ändern)
+echo "== udev-Regel wird installiert/aktualisiert (sudo wird einmalig benötigt) =="
+sudo install -m 0644 "$RULE_SRC" "$RULE_DST" \
+  && ok "udev-Regel: $RULE_DST" \
+  || warn "udev-Regel NICHT installiert – ohne Root wird kein Gerätezugriff möglich sein"
+if command -v udevadm >/dev/null; then
+  sudo udevadm control --reload-rules 2>/dev/null || true
+  # auf ALLE bereits angeschlossenen Geräte anwenden (auch nach Reboot wirksam)
+  sudo udevadm trigger --subsystem-match=hidraw 2>/dev/null || true
+  sudo udevadm settle 2>/dev/null || true
+  ok "udev-Regeln angewandt (trigger/settle)"
 fi
 
 # 4. systemd-User-Unit (Hintergrundbetrieb) ----------------------------------------

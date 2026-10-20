@@ -72,6 +72,13 @@ class SSEWorker(QThread):
 def main() -> None:
     autostart_tray = "--tray" in sys.argv
 
+    # GUI-Log (Abstürze/Kontext sichtbar machen)
+    from luxafor.core import logging_setup as _ls
+    _ls.setup_logging((api_client.call("GET", "/api/settings", timeout=3) or {}).get(
+        "log.level", "INFO"), console=False)
+    _log = _ls.get_logger("gui")
+    _log.info("GUI startet")
+
     app = QApplication(sys.argv)
     app.setApplicationName("Luxafor")
     app.setOrganizationName("luxafor")
@@ -116,6 +123,7 @@ def main() -> None:
 
     poller.start()
     exit_code = app.exec()
+    _log.info("GUI beendet (code %s)", exit_code)
     # sauberer Thread-Stopp, damit Qt beim Beenden nicht crashed
     poller.stop()
     if not poller.wait(3000):

@@ -220,15 +220,25 @@ class CoreApp:
             "udev-Regel installiert? scripts/install.sh richtet uaccess ein.")
         add("usb-berechtigungen", hid_ok if connected else None,
             "HID-Zugriff OK" if hid_ok else "Fehler beim HID-Zugriff",
-            "Prüfe udev-Regel (/etc/udev/rules.d/90-luxafor.rules) und Gruppenmitgliedschaft.")
+            "/install.sh ausführen (richtet die udev-Regel ein und triggert sie).")
+        from luxafor.hardware.hidraw_native import discover_native
         perm_hint = None
-        if connected and not any(not d.get("simulated") and d.get("open") for d in device_list):
-            perm_hint = ("Es wurden Geräte erkannt, aber nicht geöffnet – deuten auf "
-                         "fehlende udev/uaccess-Berechtigungen hin.")
-            add("usb-berechtigungen-hinweis", False,
-                "Geräte erkannt, aber nicht geöffnet", perm_hint)
-        elif not connected:
-            add("usb-berechtigungen-hinweis", None, "ohne Hardware nicht prüfbar")
+        real_infos = [d for d in device_list if not d.get("simulated")]
+        if real_infos and not any(d.get("open") for d in real_infos):
+            # exakte Node-Rechte anzeigen
+            for node in [d.get("path") for d in real_infos if d.get("path")]:
+                try:
+                    import os as _os
+                    st = _os.stat(node)
+                    add("node-rechte", False,
+                        f"{node}: mode={oct(st.st_mode)[-4:]} uid={st.st_uid}",
+                        "Reparatur: sudo install -m 0644 packaging/udev/90-luxafor.rules "
+                        "/etc/udev/rules.d/ && sudo udevadm trigger --subsystem-match=hidraw")
+                except OSError as exc:
+                    add("node-rechte", False, f"{node}: {exc}", None)
+            perm_hint = "Geräte erkannt, aber nicht geöffnet (Rechte) — Hinweis oben."
+        elif not real_infos:
+            add("node-rechte", None, "ohne Hardware nicht prüfbar")
 
         net_ok = await self._check_internet()
         add("internet", net_ok, "Internet erreichbar" if net_ok else "Kein Internet")

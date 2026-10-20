@@ -1,17 +1,14 @@
-# /etc/udev/rules.d/90-luxafor.rules — uaccess ohne Root für den Desktop-User
-# Luxafor Flag Gen1 (classic)
-SUBSYSTEM=="hidraw", ATTRS{idVendor}=="04d2", ATTRS{idProduct}=="bada", \
-  MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTRS{idVendor}=="04d2", ATTRS{idProduct}=="bada", \
-  MODE="0660", TAG+="uaccess"
-# Luxafor Flag Gen2 (Microchip-Firmware, "LUXAFOR FLAG" product string)
+# Luxafor LED-Geräte: schreibbar für den angemeldeten Benutzer — auch für
+# systemd --user-Dienste (uaccess-ACLs decken Sitzungsprozesse nicht immer;
+# ein LED-Statusgerät hat KEINE Eingabefunktionen → MODE 0666 ist vertretbar).
+# Wer es strikter will: MODE 0660 + GROUP="<eigene Gruppe>" setzen.
+
+# Luxafor Flag Gen2 (Microchip "LUXAFOR FLAG")
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="f372", \
-  MODE="0660", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="f372", \
-  MODE="0660", TAG+="uaccess"
-# Alle HID-Geräte mit Luxafor-Produktstring (weitere Modelle/Revisionen)
+  MODE="0666"
+# weitere Luxafor-Modelle mit Produktstring
 SUBSYSTEM=="hidraw", ATTRS{product}=="*LUXAFOR*", \
-  MODE="0660", TAG+="uaccess"
-# Alte Gen1-Geräte, weitere PIDs mit derselben VID
+  MODE="0666"
+# Luxafor Flag Gen1 und alle übrigen Geräte der Luxafor-VID
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="04d2", \
-  MODE="0660", TAG+="uaccess"
+  MODE="0666"
