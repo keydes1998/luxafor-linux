@@ -110,7 +110,7 @@ class TrayController:
         w.activateWindow()
 
     def _really_quit(self) -> None:
-        """Full quit: GUI closes (core keeps running as systemd service)."""
+        """Full quit; stoppt auf Wunsch auch den Hintergrunddienst."""
         self.main_window._close_to_tray = False
         QApplication.instance().quit()
 

@@ -122,6 +122,9 @@ async def test_simulator_auto_when_no_hw(manager):
     fake = FakeHidModule()
     fake.devices = []  # nothing connected
     discovery.hid = fake
+    dm._scan_now(allow_sim_add=True)   # boot scan erstellt den Simulator
+    assert "sim:0" in dm.devices
+    # Folge-Scans ohne Hardware: Simulator bleibt (kein neues, kein Entfernen)
     dm._scan_now()
     assert "sim:0" in dm.devices
     assert dm.apply_state("#FF0000", "solid")

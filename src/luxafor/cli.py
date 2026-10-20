@@ -110,6 +110,17 @@ def cmd_diagnose(_args) -> None:
             print(f"        Hinweis: {c.get('hint')}")
 
 
+def _service(action: str) -> None:
+    import subprocess
+    try:
+        res = subprocess.run(["systemctl", "--user", action, "luxafor-core"],
+                             check=False, capture_output=True, text=True, timeout=15)
+        print("Dienst", action, "→", "OK" if res.returncode == 0 else
+              (res.stderr or "Fehler").strip())
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        print("systemctl --user nicht verfügbar:", exc)
+
+
 def cmd_login(_args) -> None:
     """One-Click-Anmeldung: Browser öffnet aus der Shell; Ergebnis wird angezeigt."""
     import threading
@@ -194,6 +205,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("restore", help="automatischen Status wiederherstellen").set_defaults(func=cmd_restore)
     sub.add_parser("login", help="Microsoft-365-Anmeldung (Browser öffnet sich)").set_defaults(func=cmd_login)
+
+    for action, label in (("start", "Hintergrunddienst starten"),
+                          ("stop", "Hintergrunddienst stoppen"),
+                          ("restart", "Hintergrunddienst neu starten")):
+        sp = sub.add_parser(action, help=label)
+        sp.set_defaults(func=lambda _a, a=action: _service(a))
     sub.add_parser("test", help="Gerätetest").set_defaults(func=cmd_test)
     sub.add_parser("diagnose", help="Diagnosen ausführen").set_defaults(func=cmd_diagnose)
     return p

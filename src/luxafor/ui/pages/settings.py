@@ -46,6 +46,16 @@ def check_core_autostart() -> bool:
     return (base / "systemd/user/luxafor-core.service").exists()
 
 
+def _systemctl(action: str, page) -> None:
+    import subprocess
+    try:
+        subprocess.run(["systemctl", "--user", action, "luxafor-core"],
+                       check=False, timeout=15)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    page.refresh()
+
+
 class SettingsPage(QWidget):
     def __init__(self, main_window) -> None:
         super().__init__()
@@ -87,6 +97,34 @@ class SettingsPage(QWidget):
         self.lbl_core_autostart.setObjectName("muted")
         c1.add(self.lbl_core_autostart)
         lay.addWidget(c1)
+
+        # --- background service -------------------------------------------------
+        cs = Card("Hintergrunddienst")
+        form_svc = QFormLayout()
+        row_svc = QHBoxLayout()
+        self.btn_core_start = QPushButton("Starten")
+        self.btn_core_stop = QPushButton("Stoppen")
+        self.btn_core_restart = QPushButton("Neustart")
+        for b in (self.btn_core_start, self.btn_core_stop, self.btn_core_restart):
+            row_svc.addWidget(b)
+        row_svc.addStretch(1)
+        form_svc.addRow(row_svc)
+        self.lbl_core_status = QLabel("—")
+        self.lbl_core_status.setObjectName("muted")
+        form_svc.addRow("Status", self.lbl_core_status)
+        self.tg_stop_on_quit = ToggleRow("Beim Beenden der GUI den Dienst stoppen")
+        form_svc.addRow(self.tg_stop_on_quit)
+        cs.lay.addLayout(form_svc)
+        lbl_hint = QLabel("Hinweis: Ohne Dienst steuert nur die GUI — Integrationen und "
+                          "Regeln laufen dann nicht. Standard: dauerhaft im Hintergrund.")
+        lbl_hint.setObjectName("muted")
+        lbl_hint.setWordWrap(True)
+        cs.add(lbl_hint)
+        lay.addWidget(cs)
+        self.btn_core_start.clicked.connect(lambda: _systemctl("start", self))
+        self.btn_core_stop.clicked.connect(lambda: _systemctl("stop", self))
+        self.btn_core_restart.clicked.connect(lambda: _systemctl("restart", self))
+        self.tg_stop_on_quit.checkbox.toggled.connect(self._save_quit_setting)
 
         # --- sync / engine -----------------------------------------------------
         c2 = Card("Synchronisierung & Automatik")
@@ -147,6 +185,24 @@ class SettingsPage(QWidget):
     def refresh(self) -> None:
         api_client.run_async(lambda: api_client.call("GET", "/api/settings"),
                              self._apply_settings)
+        # Dienst-Status + Quit-Setting aktualisieren
+        import subprocess
+        try:
+            res = subprocess.run(["systemctl", "--user", "is-active", "luxafor-core"],
+                                 capture_output=True, text=True, timeout=5)
+            state = (res.stdout or "").strip() or "unbekannt"
+            self.lbl_core_status.setText(state)
+            self.btn_core_start.setEnabled(state != "active")
+            self.btn_core_stop.setEnabled(state == "active")
+        except (OSError, subprocess.TimeoutExpired):
+            self.lbl_core_status.setText("systemctl nicht verfügbar")
+        if not getattr(self.tg_stop_on_quit, "_loaded_once", False):
+            self.tg_stop_on_quit._loaded_once = True
+
+    def _save_quit_setting(self, checked: bool) -> None:
+        payload = {"ui.stop_core_on_quit": "true" if checked else "false"}
+        api_client.run_async(lambda p=payload: api_client.call("PUT", "/api/settings", p),
+                             lambda d: None)
 
     def _apply_settings(self, data: dict) -> None:
         if data.get("_unreachable"):
@@ -164,6 +220,7 @@ class SettingsPage(QWidget):
         self.tg_tray.setChecked(str(data.get("ui.close_to_tray", "true")).lower() == "true")
         self.tg_minimized.setChecked(str(data.get("ui.start_minimized", "false")).lower() == "true")
         self.tg_notifications.setChecked(str(data.get("ui.notify_on_change", "true")).lower() == "true")
+        self.tg_stop_on_quit.setChecked(str(data.get("ui.stop_core_on_quit", "false")).lower() == "true")
         # autostart file state (local fs)
         autostart = Path(os.environ.get("XDG_CONFIG_HOME", user_home() / ".config")) / "autostart" / "luxafor-gui.desktop"
         if not getattr(self.tg_autostart, '_user_touched', False):

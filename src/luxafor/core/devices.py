@@ -64,7 +64,7 @@ class DeviceManager:
 
     # -- lifecycle -----------------------------------------------------------
     async def start(self) -> None:
-        self._scan_now()
+        self._scan_now(allow_sim_add=True)
         interval = int(safe_get(self.db.get_all_settings(), "hardware.reconnect_interval", "5"))
         self._scan_task = asyncio.create_task(self._scan_loop(max(2, interval)))
         log.info("device manager started (%d device(s))", len(self.devices))
@@ -82,8 +82,10 @@ class DeviceManager:
     def _simulator_mode(self) -> str:
         return safe_get(self.db.get_all_settings(), "hardware.simulator", "auto")
 
-    def _scan_now(self) -> None:
+    def _scan_now(self, allow_sim_add: bool = False) -> None:
         """One discovery pass: open new devices, refresh metadata."""
+        # allow_sim_add: Simulator nur beim Core-Start bereitstellen — bei
+        # späteren Scans (Replug etc.) nicht einblenden
         seen: dict[str, Any] = {}
         enumerated_count = 0
         mode = self._simulator_mode()
@@ -126,7 +128,9 @@ class DeviceManager:
                         dev.last_error = str(exc)
                         log.warning("cannot open (hidapi) device %s: %s", ident, exc)
                     seen[ident] = dev
-        use_sim = mode == "force" or (mode == "auto" and enumerated_count == 0)
+        use_sim = (mode == "force"
+                   or (mode == "auto" and enumerated_count == 0
+                       and (allow_sim_add or bool(self._sim_devices))))  # bestehende Sims behalten
         if use_sim:
             if not self._sim_devices:
                 sim = SimulatorDevice("sim:0")
@@ -136,7 +140,8 @@ class DeviceManager:
                 if not sim.is_open:
                     sim.open()
                 seen[sim.device_id] = sim
-        elif self._sim_devices:
+        elif enumerated_count > 0 and self._sim_devices:
+            # echte Geräte da → Simulator zurückziehen
             for sim in list(self._sim_devices.values()):
                 sim.close()
             self._sim_devices.clear()

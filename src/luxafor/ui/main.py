@@ -15,6 +15,18 @@ from luxafor.ui.main_window import MainWindow
 from luxafor.ui.tray import TrayController, make_icon
 
 
+def maybe_stop_core(settings: dict) -> None:
+    """Stoppt den Hintergrunddienst, wenn 'Bei Beenden stoppen' aktiv ist."""
+    if str(settings.get("ui.stop_core_on_quit", "false")).lower() != "true":
+        return
+    import subprocess
+    try:
+        subprocess.run(["systemctl", "--user", "stop", "luxafor-core"],
+                       check=False, timeout=15)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+
 class SSEWorker(QThread):
     """Streams the core event bus; forwards raw payloads to the GUI thread."""
     event_received = QtSignal(dict)
@@ -95,6 +107,7 @@ def main() -> None:
     poller = SSEWorker(win)
     poller.event_received.connect(win.on_state_event)
     app.aboutToQuit.connect(poller.stop)
+    app.aboutToQuit.connect(lambda: maybe_stop_core(settings))
 
     if autostart_tray or str(settings.get("ui.start_minimized", "false")).lower() == "true":
         win.hide()

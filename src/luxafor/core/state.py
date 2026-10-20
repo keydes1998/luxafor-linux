@@ -57,6 +57,7 @@ class StateEngine:
         self._task: asyncio.Task | None = None
         self._last_sync_ok: float | None = None
         self._last_sync_err: str | None = None
+        self._force_apply = False
 
     # -- lifecycle ------------------------------------------------------------
     async def start(self) -> None:
@@ -100,6 +101,12 @@ class StateEngine:
         self.bus.publish("sync", {"ok": ok, "error": error, "ts": self._last_sync_ok})
 
     # -- evaluation -----------------------------------------------------------
+    def mark_dirty(self) -> None:
+        """Erzwingt ein erneutes Anwenden des aktuellen Status (z. B. nach
+        Replug/Ausbau des Geräts) — auch ohne Statusänderung."""
+        self._force_apply = True
+        self.request_recompute()
+
     def request_recompute(self) -> None:
         self._wakeup.set()
 
@@ -151,7 +158,10 @@ class StateEngine:
     def _apply(self, key: str, cand: Candidate) -> None:
         changed = (self.current.get("key") != key
                    or self.current.get("color") != cand.color
-                   or self.current.get("effect") != cand.effect)
+                   or self.current.get("effect") != cand.effect
+                   or not self.current.get("applied", True)
+                   or self._force_apply)
+        self._force_apply = False
         if not changed:
             self.current["ts"] = time.time()
             return

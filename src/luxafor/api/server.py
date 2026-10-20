@@ -124,6 +124,7 @@ class ApiServer:
             web.post("/api/status", self.post_manual_status),
             web.post("/api/status/restore", self.post_restore),
             web.post("/api/sync/pause", self.post_pause),
+            web.post("/api/shutdown", self.post_shutdown),
             web.get("/api/devices", self.get_devices),
             web.get("/api/devices/supported", self.get_supported_devices),
             web.post("/api/device/color", self.post_device_color),
@@ -221,6 +222,15 @@ class ApiServer:
         body = await self._body(request)
         self.ctx.state.set_paused(bool(body.get("paused", True)))
         return json_response({"ok": True, "paused": self.ctx.state.paused})
+
+    async def post_shutdown(self, request: web.Request) -> web.Response:
+        """Sauberer Hintergrunddienst-Stopp (z. B. über die GUI)."""
+        if request.remote not in ("127.0.0.1", "::1"):
+            return json_response({"error": "loopback only"}, status=403)
+        self.ctx.db.log_activity("shutdown", {"via": "api"})
+        loop = asyncio.get_running_loop()
+        loop.call_later(0.2, lambda: asyncio.ensure_future(self.ctx.request_shutdown()))
+        return json_response({"ok": True})
 
     async def get_devices(self, request: web.Request) -> web.Response:
         return json_response({"devices": self.ctx.devices.device_infos(),

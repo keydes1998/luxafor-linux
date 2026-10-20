@@ -69,11 +69,18 @@ class CoreApp:
         self.port_conflict = False
         self._tasks: list[asyncio.Task] = []
         self._started = time.time()
+        self._stop_event: asyncio.Event | None = None
         self._schedule_task: asyncio.Task | None = None
         self.rules.seed_defaults()
 
     # -- lifecycle ---------------------------------------------------------------
+    def request_shutdown(self) -> None:
+        """Sauberer Shutdown (z. B. GUI 'Beenden' oder systemd stop)."""
+        if self._stop_event is not None:
+            self._stop_event.set()
+
     async def start(self) -> None:
+        self._stop_event = asyncio.Event()
         await self.devices.start()
         await self.state.start()
         await self.api_server.start()
@@ -89,7 +96,7 @@ class CoreApp:
         log.info("core started v%s", __version__)
 
     async def run(self) -> None:
-        stop = asyncio.Event()
+        stop = self._stop_event or asyncio.Event()
         loop = asyncio.get_running_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
             try:

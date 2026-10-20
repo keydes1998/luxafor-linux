@@ -62,6 +62,7 @@ DEFAULT_SETTINGS: dict[str, str] = {
     "ui.close_to_tray": "true",
     "ui.start_minimized": "false",
     "ui.notify_on_change": "true",
+    "ui.stop_core_on_quit": "false",
     "log.level": "INFO",
     "log.redact": "true",
     "active_profile": "",
