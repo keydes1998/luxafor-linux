@@ -99,6 +99,12 @@ command -v update-desktop-database >/dev/null && update-desktop-database "$APP_D
 command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -f "$ICON_BASE" 2>/dev/null || true
 ok "Icons installiert"
 
+# 5b. Desktop-Verknüpfung (Doppelklick-Start)
+DESKDIR="$(command -v xdg-user-dir >/dev/null && xdg-user-dir DESKTOP || echo "$HOME/Desktop")"
+mkdir -p "$DESKDIR"
+cp "$APP_DIR/luxafor.desktop" "$DESKDIR/luxafor.desktop" 2>/dev/null && chmod +x "$DESKDIR/luxafor.desktop" \
+  && ok "Desktop-Verknüpfung: $DESKDIR/luxafor.desktop"
+
 # 6. Autostart-Datei (GUI startet mit dem Desktop) ----------------------------------
 AUTOSTART="$HOME/.config/autostart"
 mkdir -p "$AUTOSTART"
