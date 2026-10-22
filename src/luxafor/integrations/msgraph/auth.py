@@ -191,10 +191,11 @@ class AuthManager:
             err = result.get("error_description") or result.get("error")
             raise self._translate_error(str(err))
         account = (result.get("account") or {})
+        claims = result.get("id_token_claims") or {}
         info = {
-            "user": account.get("username"),
-            "name": account.get("name"),
-            "tenant": account.get("tenant_environment"),
+            "user": account.get("username") or claims.get("preferred_username") or claims.get("upn"),
+            "name": account.get("name") or claims.get("name"),
+            "tenant": account.get("tenant_environment") or claims.get("tid"),
             "scopes": result.get("scope", "").split(),
         }
         log.info("login success: %s", info.get("user"))

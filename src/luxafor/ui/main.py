@@ -10,6 +10,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from luxafor import __version__
+from luxafor.core import config
 from luxafor.ui import api_client, theme
 from luxafor.ui.main_window import MainWindow
 from luxafor.ui.tray import TrayController, make_icon
@@ -72,12 +73,17 @@ class SSEWorker(QThread):
 def main() -> None:
     autostart_tray = "--tray" in sys.argv
 
-    # GUI-Log (Abstürze/Kontext sichtbar machen)
+    # GUI-Log (Abstürze/Kontext sichtbar machen) + segfault-faulthandler
     from luxafor.core import logging_setup as _ls
     _ls.setup_logging((api_client.call("GET", "/api/settings", timeout=3) or {}).get(
         "log.level", "INFO"), console=False)
     _log = _ls.get_logger("gui")
     _log.info("GUI startet")
+    try:
+        import faulthandler
+        faulthandler.enable(open(config.LOG_PATH, "a"))
+    except Exception:
+        pass
 
     app = QApplication(sys.argv)
     app.setApplicationName("Luxafor")

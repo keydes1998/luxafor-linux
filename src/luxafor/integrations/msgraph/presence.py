@@ -9,7 +9,7 @@ from luxafor.integrations.msgraph.client import GraphClient, GraphError
 
 log = get_logger("presence")
 
-MAX_BACKOFF = 300.0
+MAX_BACKOFF = 60.0
 
 
 class PresenceSyncer(Integration):
@@ -75,6 +75,7 @@ class PresenceSyncer(Integration):
                 self._last_err_hint = exc.hint
                 self.ctx.engine.note_sync_result(False, str(exc))
                 self.ctx.bus.publish("presence_error", {"error": str(exc), "hint": exc.hint})
+                log.warning("presence poll fehlgeschlagen: %s (retry in %.0fs)", exc, min(backoff, 60))
                 await asyncio.sleep(min(backoff, MAX_BACKOFF))
                 backoff = min(backoff * 2, MAX_BACKOFF)
             except Exception:
